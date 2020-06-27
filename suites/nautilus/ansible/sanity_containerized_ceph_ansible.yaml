@@ -48,6 +48,11 @@ tests:
         abort-on-fail: true
 
    - test:
+       name: test ceph-medic
+       module: test_ceph_medic.py
+       desc: Test Ceph-Medic BZ-1784801
+
+   - test:
       name: librbd workunit
       module: test_workunit.py
       config:
