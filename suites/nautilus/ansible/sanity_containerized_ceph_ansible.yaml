@@ -20,10 +20,10 @@ tests:
               journal_size: 1024
               ceph_stable: True
               ceph_stable_rh_storage: True
-              ceph_docker_image: rhceph/rhceph-3-rhel7
+              ceph_docker_image: rhceph/rhceph-4-rhel8
               ceph_docker_image_tag: latest
               containerized_deployment: true
-              ceph_docker_registry: registry.access.redhat.com
+              ceph_docker_registry: registry.redhat.io
               copy_admin_key: true
               dashboard_enabled: False
               ceph_conf_overrides:
@@ -110,10 +110,10 @@ tests:
             journal_size: 1024
             ceph_stable: True
             ceph_stable_rh_storage: True
-            ceph_docker_image: rhceph/rhceph-3-rhel7
+            ceph_docker_image: rhceph/rhceph-4-rhel8
             ceph_docker_image_tag: latest
             containerized_deployment: true
-            ceph_docker_registry: registry.access.redhat.com
+            ceph_docker_registry: registry.redhat.io
             copy_admin_key: true
             dashboard_enabled: False
             ceph_conf_overrides:
@@ -156,10 +156,10 @@ tests:
             journal_size: 1024
             ceph_stable: True
             ceph_stable_rh_storage: True
-            ceph_docker_image: rhceph/rhceph-3-rhel7
+            ceph_docker_image: rhceph/rhceph-4-rhel8
             ceph_docker_image_tag: latest
             containerized_deployment: true
-            ceph_docker_registry: registry.access.redhat.com
+            ceph_docker_registry: registry.redhat.io
             copy_admin_key: true
             dashboard_enabled: False
             ceph_conf_overrides:
@@ -202,10 +202,10 @@ tests:
             journal_size: 1024
             ceph_stable: True
             ceph_stable_rh_storage: True
-            ceph_docker_image: rhceph/rhceph-3-rhel7
+            ceph_docker_image: rhceph/rhceph-4-rhel8
             ceph_docker_image_tag: latest
             containerized_deployment: true
-            ceph_docker_registry: registry.access.redhat.com
+            ceph_docker_registry: registry.redhat.io
             copy_admin_key: true
             dashboard_enabled: False
             ceph_conf_overrides:

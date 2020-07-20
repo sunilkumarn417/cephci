@@ -22,7 +22,7 @@ tests:
             ceph_docker_image: rhceph/rhceph-3-rhel7
             ceph_docker_image_tag: latest
             containerized_deployment: true
-            ceph_docker_registry: registry.access.redhat.com
+            ceph_docker_registry: registry.redhat.io
             copy_admin_key: true
             ceph_conf_overrides:
                 global:
@@ -134,7 +134,7 @@ tests:
             ceph_docker_image: rhceph/rhceph-3-rhel7
             ceph_docker_image_tag: latest
             containerized_deployment: true
-            ceph_docker_registry: registry.access.redhat.com
+            ceph_docker_registry: registry.redhat.io
             copy_admin_key: true
             ceph_conf_overrides:
                 global:
@@ -251,7 +251,7 @@ tests:
             ceph_docker_image: rhceph/rhceph-3-rhel7
             ceph_docker_image_tag: latest
             containerized_deployment: true
-            ceph_docker_registry: registry.access.redhat.com
+            ceph_docker_registry: registry.redhat.io
             copy_admin_key: true
             ceph_conf_overrides:
                 global:
@@ -367,7 +367,7 @@ tests:
             ceph_docker_image: rhceph/rhceph-3-rhel7
             ceph_docker_image_tag: latest
             containerized_deployment: true
-            ceph_docker_registry: registry.access.redhat.com
+            ceph_docker_registry: registry.redhat.io
             copy_admin_key: true
             ceph_conf_overrides:
                 global:
@@ -480,7 +480,7 @@ tests:
             ceph_docker_image: rhceph/rhceph-3-rhel7
             ceph_docker_image_tag: latest
             containerized_deployment: true
-            ceph_docker_registry: registry.access.redhat.com
+            ceph_docker_registry: registry.redhat.io
             copy_admin_key: true
             ceph_conf_overrides:
                 global:
@@ -592,7 +592,7 @@ tests:
             ceph_docker_image: rhceph/rhceph-3-rhel7
             ceph_docker_image_tag: latest
             containerized_deployment: true
-            ceph_docker_registry: registry.access.redhat.com
+            ceph_docker_registry: registry.redhat.io
             copy_admin_key: true
             ceph_conf_overrides:
                 global:
@@ -703,7 +703,7 @@ tests:
             ceph_docker_image: rhceph/rhceph-3-rhel7
             ceph_docker_image_tag: latest
             containerized_deployment: true
-            ceph_docker_registry: registry.access.redhat.com
+            ceph_docker_registry: registry.redhat.io
             copy_admin_key: true
             ceph_conf_overrides:
                 global:
@@ -744,7 +744,7 @@ tests:
             ceph_docker_image: rhceph/rhceph-3-rhel7
             ceph_docker_image_tag: latest
             containerized_deployment: true
-            ceph_docker_registry: registry.access.redhat.com
+            ceph_docker_registry: registry.redhat.io
             copy_admin_key: true
             ceph_conf_overrides:
                 global:
@@ -788,7 +788,7 @@ tests:
             ceph_docker_image: rhceph/rhceph-3-rhel7
             ceph_docker_image_tag: latest
             containerized_deployment: true
-            ceph_docker_registry: registry.access.redhat.com
+            ceph_docker_registry: registry.redhat.io
             copy_admin_key: true
             ceph_conf_overrides:
                 global:
@@ -833,7 +833,7 @@ tests:
             ceph_docker_image: rhceph/rhceph-3-rhel7
             ceph_docker_image_tag: latest
             containerized_deployment: true
-            ceph_docker_registry: registry.access.redhat.com
+            ceph_docker_registry: registry.redhat.io
             copy_admin_key: true
             ceph_conf_overrides:
                 global:
