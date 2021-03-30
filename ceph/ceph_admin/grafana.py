@@ -2,6 +2,7 @@
 from typing import Dict
 
 from .apply import ApplyMixin
+from .helper import set_custom_monitoring_svc_image
 from .orch import Orch
 
 
@@ -35,4 +36,11 @@ class Grafana(ApplyMixin, Orch):
                     dry-run: true
                     unmanaged: true
         """
+        if config.get("custom_image", None):
+            # In case of custom image,
+            # set grafana container image before deploying grafana service
+            set_custom_monitoring_svc_image(
+                self, self.SERVICE_NAME, config["custom_image"]
+            )
+
         super().apply(config=config)
