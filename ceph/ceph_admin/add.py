@@ -7,7 +7,7 @@ from .typing_ import DaemonProtocol
 
 
 class AddMixin:
-    """Mixin Class for orch daemon add"""
+    """Mixin Class for Ceph orch daemon add."""
 
     def add(self: DaemonProtocol, config: Dict):
         """
@@ -32,7 +32,8 @@ class AddMixin:
         base_cmd = ["ceph", "orch"]
         base_cmd.extend(["daemon", "add", service])
         if config.get("base_cmd_args"):
-            base_cmd.append(config_dict_to_string(config["base_cmd_args"]))
+            base_cmd.append(config_dict_to_string(
+                config["base_cmd_args"]))
 
         pos_args = config["pos_args"]
         node = pos_args[0]

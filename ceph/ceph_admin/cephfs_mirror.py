@@ -12,8 +12,7 @@ class CephfsMirror(ApplyMixin, Orch):
 
     def apply(self, config: Dict) -> None:
         """
-        Execute the command
-        ceph orch apply cephfs-mirror
+        Execute the command ceph orch apply cephfs-mirror.
 
         Args:
             config (Dict): command and service are passed from the test case.

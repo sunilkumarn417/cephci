@@ -1,3 +1,7 @@
 -e .
 black
 isort
+flake8
+pydocstyle
+flake8-docstrings
+flake8-rst-docstrings

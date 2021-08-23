@@ -6,6 +6,7 @@ from .orch import Orch
 
 
 class RGW(ApplyMixin, Orch):
+    """Rados Gateway Class for Cephadm Operations."""
     SERVICE_NAME = "rgw"
 
     def apply(self, config: Dict) -> None:

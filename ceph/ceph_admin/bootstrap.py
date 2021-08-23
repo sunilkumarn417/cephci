@@ -21,7 +21,7 @@ __DEFAULT_SSH_PATH = "/etc/ceph/ceph.pub"
 
 def construct_registry(cls, registry: str, json_file: bool = False):
     """
-    Construct registry credentials for bootstrapping cluster
+    Construct registry credentials for bootstrapping cluster.
 
     Args:
         cls (CephAdmin): class object
@@ -101,8 +101,9 @@ def copy_ceph_configuration_files(cls, ceph_conf_args):
 
 def generate_ssl_certificate(cls, dashboard_key, dashboard_crt):
     """
-    Construct dashboard key and certificate files for bootstrapping cluster
-    with dashboard custom key and certificate files for ssl
+    Construct dashboard key and certificate files for bootstrapping cluster.
+
+    Support custom dashboard key and certificate files for ssl.
 
     Args:
         cls (CephAdmin): class object
@@ -112,7 +113,6 @@ def generate_ssl_certificate(cls, dashboard_key, dashboard_crt):
     Returns:
          constructed string of SSL CLI option (Str)
     """
-
     # Installing openssl package needed for ssl
     cls.installer.exec_command(
         sudo=True,
@@ -136,7 +136,9 @@ class BootstrapMixin:
 
     def bootstrap(self: CephAdmProtocol, config: Dict):
         """
-        Execute cephadm bootstrap with the passed kwargs on the installer node.::
+        Execute cephadm bootstrap with the passed kwargs on the installer node.
+
+        ::
 
             Bootstrap involves,
               - Creates /etc/ceph directory with permissions

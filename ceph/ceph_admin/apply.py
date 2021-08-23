@@ -16,6 +16,7 @@ from .typing_ import ServiceProtocol
 
 
 class OrchApplyServiceFailure(Exception):
+    """Orchestration Service Apply Exception."""
     pass
 
 
