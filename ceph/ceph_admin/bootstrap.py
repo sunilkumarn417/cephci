@@ -176,6 +176,7 @@ class BootstrapMixin:
         """
         self.cluster.setup_ssh_keys()
         args = config.get("args")
+        nogpg_check = True
         custom_repo = args.pop("custom_repo", None)
         custom_image = args.pop("custom_image", True)
 
@@ -184,17 +185,18 @@ class BootstrapMixin:
         else:
             self.set_tool_repo()
 
-        self.install()
-
         cmd = "cephadm"
         if config.get("base_cmd_args"):
             cmd += config_dict_to_string(config["base_cmd_args"])
 
-        if custom_image:
-            if isinstance(custom_image, str):
-                cmd += f" --image {custom_image}"
-            else:
-                cmd += f" --image {self.config['container_image']}"
+        if isinstance(custom_image, str):
+            cmd += f" --image {custom_image}"
+        elif self.config.get("container_image"):
+            cmd += f" --image {self.config['container_image']}"
+        else:
+            nogpg_check = False
+
+        self.install({"nogpgcheck": nogpg_check})
 
         cmd += " bootstrap"
 

@@ -114,6 +114,15 @@ class CephAdmin(BootstrapMixin, ShellMixin):
                 node.exec_command(sudo=True, cmd="yum update metadata", check_ec=False)
         else:
             base_url = self.config["base_url"]
+            if not base_url:
+                # Setup CDN repo
+                logger.info("Base compose URL not found. Setting CDN RHCeph repos")
+                distribution = self.installer.distro_info
+                self.cluster.setup_rhceph_cdn_repos(
+                    self.cluster.rhcs_version, distribution["VERSION_ID"]
+                )
+                return
+
             if not base_url.endswith("/"):
                 base_url += "/"
             base_url += "compose/Tools/x86_64/os/"
@@ -149,7 +158,7 @@ class CephAdmin(BootstrapMixin, ShellMixin):
 
         self.installer.exec_command(
             sudo=True,
-            cmd="yum install cephadm -y --nogpgcheck",
+            cmd=cmd,
             long_running=True,
         )
 
