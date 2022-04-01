@@ -275,7 +275,7 @@ class BootstrapMixin:
 
         # Todo: This patch is specific to 5.1 release,
         #   should be removed for next 5.x development builds or release.
-        if rhbuild.startswith("5.1"):
+        if rhbuild.startswith("5.1") and custom_image:
             cmd += " --yes-i-know"
 
         out, err = self.installer.exec_command(
