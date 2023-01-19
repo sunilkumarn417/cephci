@@ -803,6 +803,7 @@ def run(args):
             if not config.get("base_url"):
                 config["base_url"] = base_url
 
+            config["platform"] = platform
             config["rhbuild"] = f"{rhbuild}-{platform}"
             config["cloud-type"] = cloud_type
             if "ubuntu_repo" in locals():

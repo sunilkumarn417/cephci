@@ -132,17 +132,22 @@ class CephAdmin(BootstrapMixin, ShellMixin):
             for node in self.cluster.get_nodes():
                 node.exec_command(sudo=True, cmd=cmd)
 
-    def set_cdn_tool_repo(self):
-        """
-        Enable the cdn Tools repo on all ceph node.
+    def set_cdn_tool_repo(self, rhbuild):
+        """Enable the cdn Tools repo on all ceph node.
+
+        Args:
+           rhbuild: RHCS version, need major version number
         """
         os_major_version = self.config.get("rhbuild", "6.0-rhel-9").split("-")[-1]
+        rhcs_major_version = rhbuild[0]
         cdn_repo = {
-            "8": "rhceph-5-tools-for-rhel-8-x86_64-rpms",
-            "9": "rhceph-5-tools-for-rhel-9-x86_64-rpms",
+            "5": {
+                "8": "rhceph-5-tools-for-rhel-8-x86_64-rpms",
+                "9": "rhceph-5-tools-for-rhel-9-x86_64-rpms",
+            }
         }
 
-        cmd = f"subscription-manager repos --enable={cdn_repo[os_major_version]}"
+        cmd = f"subscription-manager repos --enable={cdn_repo[rhcs_major_version][os_major_version]}"
         for node in self.cluster.get_nodes():
             node.exec_command(sudo=True, cmd=cmd)
 
@@ -214,3 +219,13 @@ class CephAdmin(BootstrapMixin, ShellMixin):
             logger.info(out)
             if err:
                 logger.error(err)
+
+    def get_cdn_image(self):
+        """Returns CDN container image from cephadm tool.
+
+        Returns:
+            RHCS CDN image from cephadm tool
+        """
+        cdn_image_cmd = r'grep -oP "(^DEFAULT_IMAGE\s=\s)\K.*"  $(which cephadm)'
+        out, _ = self.installer.exec_command(cmd=cdn_image_cmd)
+        return out.replace("'", "")

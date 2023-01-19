@@ -200,7 +200,7 @@ class BootstrapMixin:
         _rhcs_version = args.pop("rhcs-version", None)
         _rhcs_release = args.pop("release", None)
         if _rhcs_release and _rhcs_version:
-            _platform = "-".join(rhbuild.split("-")[1:])
+            _platform = config["platform"]
             _details = fetch_build_artifacts(_rhcs_release, _rhcs_version, _platform)
 
             # The cluster object is configured so that the values are persistent till
@@ -220,10 +220,10 @@ class BootstrapMixin:
                 "Enabling cdn tool repo to workaround ",
                 "unavailability of ceph x86_64 RPM pkgs in upstream builds",
             )
-            self.set_cdn_tool_repo()
+            self.set_cdn_tool_repo("5")
         elif build_type == "released" or custom_repo.lower() == "cdn":
             custom_image = False
-            self.set_cdn_tool_repo()
+            self.set_cdn_tool_repo(rhbuild)
         elif custom_repo:
             self.set_tool_repo(repo=custom_repo)
         else:

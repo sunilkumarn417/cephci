@@ -1,6 +1,9 @@
-import yaml
+"""Ceph Ansible Upgrade Test module
 
-from ceph.ceph_admin.common import config_dict_to_string
+Playbooks:
+- rolling update to newer version
+- Ceph-adm adoption (>= RHCS 5.x ).
+"""
 from ceph.utils import (
     get_ceph_versions,
     get_node_by_id,
@@ -9,50 +12,50 @@ from ceph.utils import (
     set_container_info,
     translate_to_ip,
 )
+from ceph.ceph_ansible_utils import CephAnsibleUtility
 from utility.utils import Log, get_latest_container_image_tag
 
 LOG = Log(__name__)
 
 
 def run(ceph_cluster, **kw):
-    LOG.info("Running test")
-    ceph_nodes = kw.get("ceph_nodes")
-    LOG.info("Running ceph ansible test")
+    ceph_installer = ceph_cluster.get_ceph_object("installer")
+    ansible = CephAnsibleUtility(ceph_installer)
+    LOG.info("Running ceph ansible Upgrade test...")
+
     config = kw.get("config")
+    ansi_config = config.get("ansi_config")
+
+    ceph_nodes = kw.get("ceph_nodes")
     test_data = kw.get("test_data")
     prev_install_version = test_data["install_version"]
     skip_version_compare = config.get("skip_version_compare")
-    limit_node = config.get("limit")
-    containerized = config.get("ansi_config").get("containerized_deployment")
+    containerized = ansi_config.get("containerized_deployment")
     build = config.get("build", config.get("rhbuild"))
-    LOG.info("Build for upgrade: {build}".format(build=build))
-    cluster_name = config.get("ansi_config").get("cluster")
+    LOG.info(f"Build for upgrade: {build}")
 
     ubuntu_repo = config.get("ubuntu_repo")
     hotfix_repo = config.get("hotfix_repo")
     cloud_type = config.get("cloud-type", "openstack")
     base_url = config.get("base_url")
     installer_url = config.get("installer_url")
-    config["ansi_config"]["public_network"] = get_public_network(ceph_nodes)
+    ansi_config["public_network"] = get_public_network(ceph_nodes)
 
-    ceph_cluster.ansible_config = config["ansi_config"]
+    ceph_cluster.ansible_config = ansi_config
     ceph_cluster.custom_config = test_data.get("custom-config")
     ceph_cluster.custom_config_file = test_data.get("custom-config-file")
-    ceph_cluster.use_cdn = config.get("use_cdn")
+    ceph_cluster.use_cdn = config.get("use_cdn") or config.get("build_type") == "released"
 
-    config["ansi_config"].update(
+    ansi_config.update(
         set_container_info(ceph_cluster, config, ceph_cluster.use_cdn, containerized)
     )
 
     # Translate RGW node to ip address for Multisite
-    rgw_pull_host = config["ansi_config"].get("rgw_pullhost")
+    rgw_pull_host = ansi_config.get("rgw_pullhost")
     if rgw_pull_host:
         ceph_cluster.ansible_config["rgw_pullhost"] = translate_to_ip(
             kw["ceph_cluster_dict"], ceph_cluster.name, rgw_pull_host
         )
-
-    ceph_installer = ceph_cluster.get_ceph_object("installer")
-    ansible_dir = "/usr/share/ceph-ansible"
 
     if config.get("skip_setup") is True:
         LOG.info("Skipping setup of ceph cluster")
@@ -72,42 +75,40 @@ def run(ceph_cluster, **kw):
     )
 
     # backup existing hosts file and ansible config
-    ceph_installer.exec_command(cmd="cp {}/hosts /tmp/hosts".format(ansible_dir))
+    ceph_installer.exec_command(cmd=f"cp {ansible.work_dir}/hosts /tmp/hosts")
     ceph_installer.exec_command(
-        cmd="cp {}/group_vars/all.yml /tmp/all.yml".format(ansible_dir)
+        cmd=f"cp {ansible.work_dir}/group_vars/all.yml /tmp/all.yml"
     )
 
     # update ceph-ansible
     ceph_installer.install_ceph_ansible(build, upgrade=True)
 
+    # Update CDN images
+    if ceph_cluster.use_cdn:
+        ansi_config.update(
+            ansible.get_cdn_images(monitoring=ansi_config.get("dashboard_enabled"))
+        )
+
     # restore hosts file
     ceph_installer.exec_command(
-        sudo=True, cmd="cp /tmp/hosts {}/hosts".format(ansible_dir)
+        sudo=True, cmd=f"cp /tmp/hosts {ansible.work_dir}/hosts"
     )
 
     # If upgrading from version 2 update hosts file with mgrs
     if prev_install_version.startswith("2") and build.startswith("3"):
-        collocate_mons_with_mgrs(ceph_cluster, ansible_dir)
+        collocate_mons_with_mgrs(ceph_cluster, ansible.work_dir)
 
     # configure fetch directory path
-    if config.get("ansi_config").get("fetch_directory") is None:
-        config["ansi_config"]["fetch_directory"] = "~/fetch/"
+    if ansi_config.get("fetch_directory") is None:
+        ansi_config["fetch_directory"] = "~/fetch/"
 
     # set the docker image tag if necessary
-    if containerized and config.get("ansi_config").get("docker-insecure-registry"):
-        config["ansi_config"]["ceph_docker_image_tag"] = get_latest_container_image_tag(
+    if containerized and ansi_config.get("docker-insecure-registry"):
+        ansi_config["ceph_docker_image_tag"] = get_latest_container_image_tag(
             build
         )
-    LOG.info("gvar: {}".format(config.get("ansi_config")))
-    gvar = yaml.dump(config.get("ansi_config"), default_flow_style=False)
 
-    # create all.yml
-    LOG.info("global vars {}".format(gvar))
-    gvars_file = ceph_installer.remote_file(
-        sudo=True, file_name="{}/group_vars/all.yml".format(ansible_dir), file_mode="w"
-    )
-    gvars_file.write(gvar)
-    gvars_file.flush()
+    ansible.dump_config(ansi_config, ansible.ALL)
 
     # retrieve container count if containerized
     if containerized:
@@ -117,55 +118,40 @@ def run(ceph_cluster, **kw):
     if config.get("docker-insecure-registry"):
         ceph_cluster.setup_insecure_registry()
 
-    # copy rolling update from infrastructure playbook
+    # Execute rolling update playbook
+    playbook = "rolling_update.yml"
+    playbook_cfg = {
+        "verbose": "vvvv"
+    }
+    extra_vars = {"ireallymeanit": "yes"}
+    extra_args = {}
+
     jewel_minor_update = build.startswith("2")
-    if build.startswith("4") or build.startswith("5"):
-        cmd = (
-            "cd {};"
-            "ANSIBLE_STDOUT_CALLBACK=debug;"
-            "ansible-playbook -e ireallymeanit=yes -vvvv -i "
-            "hosts infrastructure-playbooks/rolling_update.yml".format(ansible_dir)
-        )
-    else:
-        ceph_installer.exec_command(
-            sudo=True,
-            cmd="cd {} ; cp infrastructure-playbooks/rolling_update.yml .".format(
-                ansible_dir
-            ),
-        )
-        cmd = (
-            "cd {};"
-            "ANSIBLE_STDOUT_CALLBACK=debug;"
-            "ansible-playbook -e ireallymeanit=yes -vvvv -i hosts rolling_update.yml".format(
-                ansible_dir
-            )
-        )
     if jewel_minor_update:
-        cmd += " -e jewel_minor_update=true"
-        LOG.info("Upgrade is jewel_minor_update, cmd: {cmd}".format(cmd=cmd))
+        extra_vars["jewel_minor_update"] = "true"
+        LOG.info("Upgrade is jewel_minor_update.")
 
     if config.get("ansi_cli_args"):
-        cmd += config_dict_to_string(config["ansi_cli_args"])
+        extra_args.update(config["ansi_cli_args"])
 
     if build.startswith("5.1"):
-        cmd += " -e qe_testing=true"
+        extra_vars["qe_testing"] = "true"
 
-    short_names = []
-    if limit_node:
-        for node in limit_node:
+    if config.get("limit"):
+        short_names = []
+        for node in config["limit"]:
             short_name = get_node_by_id(ceph_cluster, node).shortname
             short_names.append(short_name)
-            matched_short_names = ",".join(short_names)
-        cmd += f" --limit {matched_short_names}"
+        extra_args["limit"] = ','.join(short_names)
 
-    rc = ceph_installer.exec_command(cmd=cmd, long_running=True)
-
+    playbook_cfg.update({"extra_vars": extra_vars, "extra_args": extra_args})
+    rc = ansible.execute_playbook(playbook, build, **playbook_cfg)
     if rc != 0:
-        LOG.error("Failed during upgrade (rc = {})".format(rc))
+        LOG.error(f"Failed during upgrade (rc = {rc})")
         return rc
 
     # set build to new version
-    LOG.info("Setting install_version to {build}".format(build=build))
+    LOG.info(f"Setting install_version to {build}")
     test_data["install_version"] = build
     ceph_cluster.rhcs_version = build
 
@@ -202,19 +188,13 @@ def run(ceph_cluster, **kw):
             return container_count_fail
 
     client = ceph_cluster.get_ceph_object("mon")
-
+    cluster_name = ansi_config.get("cluster")
     if build.startswith("5"):
-
-        cmd = (
-            "cd {};"
-            "ANSIBLE_STDOUT_CALLBACK=debug;"
-            "ansible-playbook -e ireallymeanit=yes -vvvv -i "
-            "hosts infrastructure-playbooks/cephadm-adopt.yml".format(ansible_dir)
-        )
-        rc = ceph_installer.exec_command(cmd=cmd, long_running=True)
-
+        # Execute Ceph-adm adopt playbook
+        playbook_cfg = {"extra_vars": {"ireallymeanit": "yes"}, "verbose": "vvvv"}
+        rc = ansible.execute_playbook("cephadm-adopt.yml", build, **playbook_cfg)
         if rc != 0:
-            LOG.error("Failed during cephadm adopt (rc = {})".format(rc))
+            LOG.error(f"Failed during cephadm adopt (rc = {rc})")
             return rc
 
         LOG.info("The value for parameter build is {}".format(build))
@@ -267,7 +247,7 @@ def compare_ceph_versions(pre_upgrade_versions, post_upgrade_versions):
         if name == "node-exporter":
             continue
 
-        # for handling rgw conatiner names during 3.x 'some-rgw' but in 4.x 'some-rgw-rgw0'
+        # for handling rgw container names during 3.x 'some-rgw' but in 4.x 'some-rgw-rgw0'
         if version.startswith("ceph version 12") and "rgw" in name:
             for rgw_name in post_upgrade_versions.keys():
                 if "rgw" in rgw_name and rgw_name.startswith(name):

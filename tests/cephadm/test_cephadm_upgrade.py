@@ -5,8 +5,9 @@ Test module that verifies the Upgrade of Ceph Storage via the cephadm CLI.
 
 from ceph.ceph_admin.orch import Orch
 from ceph.rados.rados_bench import RadosBench
-from ceph.utils import is_legacy_container_present
+from ceph.utils import is_legacy_container_present, get_cdn_container_image
 from utility.log import Log
+from utility.utils import fetch_build_artifacts
 
 log = Log(__name__)
 
@@ -41,6 +42,10 @@ def run(ceph_cluster, **kwargs) -> int:
     log.info("Upgrade Ceph cluster...")
     config = kwargs["config"]
     config["overrides"] = kwargs.get("test_data", {}).get("custom-config")
+    rhcs_version = config.pop("rhcs_version")
+    release = config.pop("release")
+    use_cdn = False
+
     orch = Orch(cluster=ceph_cluster, **config)
 
     client = ceph_cluster.get_nodes(role="client")[0]
@@ -55,18 +60,35 @@ def run(ceph_cluster, **kwargs) -> int:
         # Initiate thread pool to run rados bench
         if executor:
             executor.run(config=config["benchmark"])
-
-        # Set repo to newer RPMs
-        orch.set_tool_repo()
+        # Fetch Build
+        installer = ceph_cluster.get_nodes(role="installer")[0]
+        if release and isinstance(rhcs_version, float):
+            (base_url, registry, image, tag) = fetch_build_artifacts(
+                release,
+                rhcs_version,
+                config["rhbuild"].split("-", 1)[-1]
+            )
+            container_image = f"{registry}/{image}:{tag}"
+            base_url = f"{base_url}/" if not base_url.endswith("/") else base_url
+            orch.set_tool_repo(repo=f"{base_url}compose/Tools/x86_64/os/")
+        elif release == "cdn" or config["build_type"] == "released":
+            container_image = None
+            orch.set_cdn_tool_repo(rhcs_version)
+            use_cdn = True
+        else:
+            # Set repo to newer RPMs and image
+            orch.set_tool_repo()
+            container_image = config["container_image"]
 
         # Install cephadm
         orch.install()
 
         # Check service versions vs available and target containers
-        orch.upgrade_check(image=config.get("container_image"))
+        if use_cdn:
+            get_cdn_container_image(installer)
+        orch.upgrade_check(image=container_image)
 
         # work around for upgrading from 5.1 and 5.2 to 5.1 and 5.2 latest
-        installer = ceph_cluster.get_nodes(role="installer")[0]
         base_cmd = "sudo cephadm shell -- ceph"
         ceph_version, err = installer.exec_command(cmd=f"{base_cmd} version")
         if ceph_version.startswith("ceph version 16.2."):
@@ -76,7 +98,7 @@ def run(ceph_cluster, **kwargs) -> int:
             installer.exec_command(cmd=f"{base_cmd} orch upgrade stop")
 
         # Start Upgrade
-        config.update({"args": {"image": "latest"}})
+        config.update({"args": {"image": None}})
         orch.start_upgrade(config)
 
         # Monitor upgrade status, till completion
