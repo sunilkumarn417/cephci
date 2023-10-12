@@ -106,14 +106,6 @@ def install_prereq(
     log.info("cloud config to completed on " + ceph.hostname)
     _is_client = len(ceph.role.role_list) == 1 and "client" in ceph.role.role_list
 
-    # Update certs
-    update_ca_cert(
-        node=ceph,
-        cert_url="https://password.corp.redhat.com/RH-IT-Root-CA.crt",
-        out_file="RH-IT-Root-CA.crt",
-        check_ec=False,
-    )
-
     # Update CephCI Cert to all nodes. Useful when creating self-signed certificates.
     update_ca_cert(
         node=ceph,
