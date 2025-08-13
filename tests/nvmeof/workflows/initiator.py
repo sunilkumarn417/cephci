@@ -1,7 +1,7 @@
 import json
 
 from ceph.ceph import CommandFailed
-from ceph.nvmeof.initiator import Initiator
+from ceph.nvmeof.initiators.linux import Initiator
 from ceph.parallel import parallel
 from utility.log import Log
 from utility.retry import retry

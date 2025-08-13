@@ -10,12 +10,15 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 
 from ceph.ceph import Ceph
-from ceph.nvmegw_cli import NVMeGWCLI
-from ceph.nvmeof.initiator import Initiator
+from ceph.nvmeof.initiators.linux import Initiator
 from ceph.parallel import parallel
 from ceph.utils import get_node_by_id
 from tests.nvmeof.workflows.ha import HighAvailability
-from tests.nvmeof.workflows.nvme_utils import delete_nvme_service, deploy_nvme_service
+from tests.nvmeof.workflows.nvme_utils import (
+    check_and_set_nvme_cli_image,
+    delete_nvme_service,
+    deploy_nvme_service,
+)
 from tests.rbd.rbd_utils import initial_rbd_config
 from utility.log import Log
 from utility.utils import generate_unique_id
@@ -460,10 +463,7 @@ def run(ceph_cluster: Ceph, **kwargs) -> int:
         )
 
     overrides = kwargs.get("test_data", {}).get("custom-config")
-    for key, value in dict(item.split("=") for item in overrides).items():
-        if key == "nvmeof_cli_image":
-            NVMeGWCLI.NVMEOF_CLI_IMAGE = value
-            break
+    check_and_set_nvme_cli_image(ceph_cluster, config=overrides)
 
     try:
         if config.get("test_case"):
@@ -484,6 +484,7 @@ def run(ceph_cluster: Ceph, **kwargs) -> int:
                 deploy_nvme_service(ceph_cluster, config)
 
             ha = HighAvailability(ceph_cluster, config["gw_nodes"], **config)
+            ha.initialize_gateways()
             gw_nodes = ha.gateways
 
             # Configure Subsystem
