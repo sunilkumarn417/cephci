@@ -14,7 +14,6 @@ from ceph.ceph import Ceph, SocketTimeoutException
 from ceph.ceph_admin import CephAdmin
 from ceph.ceph_admin.helper import check_service_exists
 from ceph.ceph_admin.orch import Orch
-from ceph.nvmeof.initiators.linux import Initiator
 from ceph.parallel import parallel
 from ceph.rados.core_workflows import RadosOrchestrator
 from ceph.rados.monitor_workflows import MonitorWorkflows
@@ -181,7 +180,7 @@ def test_ceph_83576084(ceph_cluster, rbd, pool, config):
             conn_port = {"trsvcid": listener_port}
             _conn_cmd = {**_cmd_args, **conn_port}
             LOG.debug(initiator.connect(**_conn_cmd))
-            targets = initiator.list_spdk_drives()
+            targets = initiator.list_devices()
             rhel_version = initiator.distro_version()
             if not targets:
                 raise Exception(f"NVMe Targets not found on {client.hostname}")
@@ -395,7 +394,7 @@ def test_ceph_83576085(ceph_cluster, rbd, pool, config):
         conn_port = {"trsvcid": listener_port}
         _conn_cmd = {**_cmd_args, **conn_port}
         LOG.debug(initiator.connect(**_conn_cmd))
-        targets = initiator.list_spdk_drives()
+        targets = initiator.list_devices()
         rhel_version = initiator.distro_version()
         if not targets:
             raise Exception(f"NVMe Targets not found on {client.hostname}")
@@ -506,7 +505,7 @@ def test_ceph_83576087(ceph_cluster, rbd, pool, config):
         conn_port = {"trsvcid": listener_port}
         _conn_cmd = {**_cmd_args, **conn_port}
         LOG.debug(initiator.connect(**_conn_cmd))
-        targets = initiator.list_spdk_drives()
+        targets = initiator.list_devices()
         rhel_version = initiator.distro_version()
         if not targets:
             raise Exception(f"NVMe Targets not found on {client.hostname}")
@@ -533,7 +532,7 @@ def test_ceph_83576087(ceph_cluster, rbd, pool, config):
             raise Exception("Host did not started post reboot!!!!")
         initiator.configure()
         LOG.debug(initiator.connect(**_cmd_args))
-        targets = initiator.list_spdk_drives()
+        targets = initiator.list_devices()
         rhel_version = initiator.distro_version()
         if not targets:
             raise Exception(f"NVMe Targets not found on {client.hostname}")
@@ -634,7 +633,7 @@ def test_ceph_83576093(ceph_cluster, rbd, pool, config):
         conn_port = {"trsvcid": listener_port}
         _conn_cmd = {**_cmd_args, **conn_port}
         LOG.debug(initiator.connect(**_conn_cmd))
-        targets = initiator.list_spdk_drives()
+        targets = initiator.list_devices()
         rhel_version = initiator.distro_version()
         if not targets:
             raise Exception(f"NVMe Targets not found on {client.hostname}")
@@ -759,7 +758,7 @@ def test_ceph_83575455(ceph_cluster, rbd, pool, config):
         conn_port = {"trsvcid": listener_port}
         _conn_cmd = {**_cmd_args, **conn_port}
         LOG.debug(initiator.connect(**_conn_cmd))
-        targets = initiator.list_spdk_drives()
+        targets = initiator.list_devices()
         rhel_version = initiator.distro_version()
         if not targets:
             raise Exception(f"NVMe Targets not found on {client.hostname}")
@@ -802,7 +801,7 @@ def test_ceph_83575455(ceph_cluster, rbd, pool, config):
                 LOG.info("Deletion of host is successful")
 
         sleep(20)
-        targets = initiator.list_spdk_drives()
+        targets = initiator.list_devices()
         if targets[0].get("Subsystems"):
             namespaces_present = not (
                 all(
@@ -832,7 +831,7 @@ def test_ceph_83575455(ceph_cluster, rbd, pool, config):
         # Check the existence of the NVMe namespaces
         nvmegwcli.host.add(**host_args)
         sleep(10)
-        targets = initiator.list_spdk_drives()
+        targets = initiator.list_devices()
         if targets[0].get("Subsystems"):
             namespaces_present = not (
                 all(
