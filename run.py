@@ -248,6 +248,20 @@ def create_nodes(
             log.error(f"Unknown cloud type: {cloud_type}")
             raise AssertionError("Unsupported test environment.")
 
+        # Resolve use_ipv6 before building nodes so CephNode can use it for SSH when requested
+        use_ipv6 = False
+        if cloud_type == "openstack":
+            os_cred = osp_cred.get("globals", {}).get("openstack-credentials", {})
+            use_ipv6 = os_cred.get("use_ipv6", False)
+            if custom_config:
+                _custom = dict(
+                    item.split("=", 1)
+                    for item in custom_config
+                    if item.startswith("openstack") and "=" in item
+                )
+                if _custom.get("openstack_use_ipv6", "").lower() in ("true", "1", "yes"):
+                    use_ipv6 = True
+
         ceph_nodes = []
         root_password = None
         for node in ceph_vmnodes.values():
@@ -283,6 +297,9 @@ def create_nodes(
                     WinNode(ip_address=node.ip_address, private_ip=private_ip)
                 )
             else:
+                # IPv6 attrs only when available (OpenStack dual-stack); other envs have no ipv6_* on node
+                ipv6_address = getattr(node, "ipv6_address", None)
+                ipv6_subnet = getattr(node, "ipv6_subnet", None)
                 ceph = CephNode(
                     username="cephuser",
                     password="cephuser",
@@ -299,11 +316,18 @@ def create_nodes(
                     ceph_vmnode=node,
                     ceph_nodename=ceph_nodename,
                     id=node.id,
+                    ipv6_address=ipv6_address,
+                    ipv6_subnet=ipv6_subnet,
+                    use_ipv6=use_ipv6,
                 )
                 ceph_nodes.append(ceph)
 
         cluster_name = cluster.get("ceph-cluster").get("name", "ceph")
         ceph_cluster_dict[cluster_name] = Ceph(cluster_name, ceph_nodes)
+
+        # Drive IPv6 only when requested (OpenStack only; no effect on other envs)
+        if cloud_type == "openstack":
+            ceph_cluster_dict[cluster_name].use_ipv6 = use_ipv6
 
         # Set the network attributes of the cluster
         # ToDo: Support other providers like openstack and IBM-C

@@ -1283,6 +1283,24 @@ def get_public_network(nodes):
     return ",".join(subnets)
 
 
+def get_public_network_ipv6(nodes):
+    """Get IPv6 public network subnet(s) from nodes that have ipv6_subnet.
+    Used only when cluster.use_ipv6 is True (OpenStack dual-stack).
+
+    Args:
+        nodes: cluster nodes (CephNode with optional ipv6_subnet)
+
+    Returns:
+        (str) comma-separated IPv6 CIDRs, or empty string if none
+    """
+    subnets = []
+    for node in nodes:
+        ipv6_sub = getattr(node, "ipv6_subnet", None)
+        if ipv6_sub and ipv6_sub not in subnets:
+            subnets.append(ipv6_sub)
+    return ",".join(subnets)
+
+
 def get_disk_info(node):
     """
     Get node disk(s) info

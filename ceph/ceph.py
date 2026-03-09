@@ -51,6 +51,9 @@ class Ceph(object):
         self.__rhcs_version = None
         self.ceph_nodename = None
         self.networks = dict()
+        # When True, bootstrap/config may use IPv6 (OpenStack only);
+        #  driven by config/custom_config
+        self.use_ipv6 = False
 
     def __eq__(self, ceph_cluster):
         if hasattr(ceph_cluster, "node_list"):
@@ -1440,6 +1443,16 @@ class CephNode(object):
         self.private_ip = kw["private_ip"]
         self.ip_address = kw["ip_address"]
         self.subnet = kw["subnet"]
+        # IPv6 only when available (e.g. OpenStack dual-stack); optional, never required
+        self.ipv6_address = kw.get("ipv6_address")
+        self.ipv6_subnet = kw.get("ipv6_subnet")
+        self.use_ipv6 = kw.get("use_ipv6", False)
+        # Address used for SSH: IPv6 when requested and available, else IPv4 (Paramiko supports both)
+        self._ssh_address = (
+            (self.ipv6_address or self.ip_address)
+            if self.use_ipv6 and self.ipv6_address
+            else kw["ip_address"]
+        )
         self.vmname = kw["hostname"]
         self.ceph_nodename = kw["ceph_nodename"]
         self.vmshortname = self.vmname.split(".")[0]
@@ -1473,14 +1486,14 @@ class CephNode(object):
             )
 
         self.root_connection = SSHConnectionManager(
-            self.ip_address,
+            self._ssh_address,
             "root",
             self.root_passwd,
             look_for_keys=self.look_for_key,
             private_key_file_path=self.private_key_path,
         )
         self.connection = SSHConnectionManager(
-            self.ip_address,
+            self._ssh_address,
             self.username,
             self.password,
             look_for_keys=self.look_for_key,
@@ -1817,15 +1830,16 @@ class CephNode(object):
 
     def __setstate__(self, pickle_dict):
         self.__dict__.update(pickle_dict)
+        ssh_address = getattr(self, "_ssh_address", None) or self.ip_address
         self.root_connection = SSHConnectionManager(
-            self.ip_address,
+            ssh_address,
             "root",
             self.root_passwd,
             look_for_keys=self.look_for_key,
             private_key_file_path=self.private_key_path,
         )
         self.connection = SSHConnectionManager(
-            self.ip_address,
+            ssh_address,
             self.username,
             self.password,
             look_for_keys=self.look_for_key,
